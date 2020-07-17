@@ -1,21 +1,69 @@
 from random import random
-from math import *
 import numpy as np
 import collections
 import itertools
+import math as m
 
 # ------------------------------------------------
 #            Topología
 # ------------------------------------------------
-routes = {
-    (0, 1): [(0), (9, 8, 7, 6, 5, 4, 3, 2, 1)], 
-    (0, 2): [(0, 1)],
-    (0, 3): [(0, 1, 2)],
-    (0, 4): [(0, 1, 2, 3)],
-    (0, 5): [(0, 1, 2, 3, 4), (9, 8, 7, 6)],
-    (0, 6): [(0, 1, 2, 3, 4, 5), (9, 8, 7, 6, 5)] 
 
-}
+# i -> fuente
+# j -> destino
+
+def get_clockwise_routes(i, j, n):
+    clockwise_routes_list = []
+    k = i
+    overclock = False
+    
+    if (i < j):
+        while (k < j):
+            clockwise_routes_list.append(k)
+            k += 1
+
+    else:
+        while (k < j or not overclock):
+            clockwise_routes_list.append(k)
+            k += 1
+            if k > n - 1:
+                k = 0
+                overclock = True
+    
+    return clockwise_routes_list
+
+def get_counterclockwise_routes(i, j, n):
+    counterclockwise_routes_list = []
+    k = i
+    overclock = False
+
+    if (j < i):
+        while (k > j):
+            k -= 1
+            counterclockwise_routes_list.append(k)
+
+    else:
+        while (k > j or not overclock):
+            k -= 1
+            if k < 0:
+                k = n - 1
+                overclock = True
+            counterclockwise_routes_list.append(k)
+    
+    return counterclockwise_routes_list
+    
+
+def get_routes(n): # O(n^2)
+    routes = {}
+    for i in range(n):
+        for j in range(n):
+            if (not i == j):
+                    routes[(i, j)] = [(get_clockwise_routes(i, j, n)), (get_counterclockwise_routes(i, j, n))]
+    return routes
+
+routes = get_routes(10)
+
+print(routes)
+
 #consideraciones:
 #1)se tiene 3 cables, por lo que tendremos las mismas longuitudes de onda por enlace
 #en caso de no encontrar la longuitud de onda en un cable, pregunto en los otros hasta que lo encuentre.
@@ -80,7 +128,7 @@ enlace1=0
 #            Variables Principales
 # ------------------------------------------------
 N = 10 #Cantidad de nodos
-users = N*(N-1) #cantidad usuarios (90)
+M = N*(N-1) #cantidad usuarios (90)
 W = 3 # cables entre nodos (arbitrario)
 #cada cable en multplexacion densa admite 18 canales.
 C = 18*W # canales disponibles (segun DWDM)
@@ -96,7 +144,7 @@ lambPrima = 1 / t_off
 charge = lamb / mu #(0.25)
 
 bloqueos_totales=[] 
-FEL = initFEL(M) # Esta función esta en "Manejo FEL"
+#FEL = initFEL(M) # Esta función esta en "Manejo FEL"
 # ------------------------------------------------
 
 
@@ -106,7 +154,7 @@ FEL = initFEL(M) # Esta función esta en "Manejo FEL"
 # ------------------------------------------------
 def randExp(n):
     u = random.random()
-    return (-1/n)*math.log(u)
+    return (-1/n)*m.log(u)
 # ------------------------------------------------
 
 
