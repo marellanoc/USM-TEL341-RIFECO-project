@@ -3,6 +3,7 @@ import numpy as np
 import collections
 import itertools
 import math as m
+import copy
 
 # ------------------------------------------------
 #            Topología
@@ -54,17 +55,30 @@ def get_counterclockwise_routes(i, j, n):
 
 def get_routes(n): # O(n^2)
     routes = {}
+    c = 0
     for i in range(n):
         for j in range(n):
             if (not i == j):
-                    routes[(i, j)] = [(get_clockwise_routes(i, j, n)), (get_counterclockwise_routes(i, j, n))]
+                c+=1
+                routes[c] = (i, j, [(get_clockwise_routes(i, j, n)), (get_counterclockwise_routes(i, j, n))])
+
+                
+    #print(c)
     return routes
 
 routes = get_routes(10)
 
-print(routes)
+print(routes[14][2][0])
 
-#consideraciones:
+L = 10
+C = 54
+links = np.full(L, C)
+
+print(links)
+
+#print(routes)
+
+#2consideraciones:
 #1)se tiene 3 cables, por lo que tendremos las mismas longuitudes de onda por enlace
 #en caso de no encontrar la longuitud de onda en un cable, pregunto en los otros hasta que lo encuentre.
 
@@ -73,24 +87,25 @@ print(routes)
 #verificar cual esta mas cargadas y elegir esa.
 #en caso contrario, si solo 1 esta disponible, se manda por esa sin importar la carga
 #en caso de tener cargas iguales, se prefiere siempre horario.
+
 #-------------------------------------------------
 #               CABLES LONGITUDES DE ONDA
 #-------------------------------------------------
-cable1 = {'1': 850, '2': 860, '3': 870, '4': 880, '5': 890, '6': 900, '7': 910, '8': 920,
-          '9': 930, '10': 940, '11': 950, '12':960, '13':970, '14': 980, '15': 990, '16': 1000,
-          '17': 1100, '18': 1200}
 
-cable2 = {'1': 850, '2': 860, '3': 870, '4': 880, '5': 890, '6': 900, '7': 910, '8': 920,
-          '9': 930, '10': 940, '11': 950, '12':960, '13':970, '14': 980, '15': 990, '16': 1000,
-          '17': 1100, '18': 1200}
-        
-cable3 = {'1': 850, '2': 860, '3': 870, '4': 880, '5': 890, '6': 900, '7': 910, '8': 920,
-          '9': 930, '10': 940, '11': 950, '12':960, '13':970, '14': 980, '15': 990, '16': 1000,
-          '17': 1100, '18': 1200}
+wire = {1: (850, True), 2: (860, True), 3: (870, True), 4: (880, True), 5: (890, True), 6: (900, True), 7: (910, True), 8: (920, True),
+        9: (930, True), 10: (940, True), 11: (950, True), 12: (960, True), 13: (970, True), 14: (980, True), 15: (990, True), 16: (1000, True),
+        17: (1100, True), 18: (1200, True)}
+
+links = []
+
+for link in range(10):
+    links.append(tuple([copy.deepcopy(wire), copy.deepcopy(wire), copy.deepcopy(wire)]))
+
+print(links)
 
 wl = 18
 C = 54
-W = 3
+L = 3
 
 # ----------------------------------------------------------------------------------------------
 #       VARIABLES A CONSIDERAR PARA DETERMINAR EL BALANCE DE CARGAR: 
@@ -162,40 +177,69 @@ def randExp(n):
 # ------------------------------------------------
 #            Manejo FEL
 # ------------------------------------------------
-def byTime(elem):
-    return elem[1]
 
-def initFEL(users):
+#0: OFF (Usuario no está transmitiendo)
+#1: ON (Usuario transmitiendo)
+#-1: BLOCKED (Usuario bloqueado)
+
+def initFEL(M):
     FEL = []
-    for i in range (users):
-        arrival_time = randExp(lamb)
-        FEL.append([i, arrival_time])
-        FEL.sort(key = byTime)
+
+    for j in range(M): # valores iniciales del FEL
+        FEL.append(tuple((j, 0, randExp(l))))
+
     return FEL
 
-def enter(FEL, links, dfRutas, user, users, current_time):
-    links[dfRutas["RUTA"][user]] -= 1 # Se utliza el enlace 
-    next_arrival_time = current_time + randExp(mu) # Se asigna tiempo de salida
-                
-    FEL.append([user + users, next_arrival_time])
-    FEL.sort(key = byTime)
-    return FEL, links
 
-def blocked(FEL, user_list, user, current_time):
-    user_list[user][1] += 1 
-    next_arrival_time = current_time + randExp(lamb) # Se asigna tiempo a la siguiente llegada
-                
-    FEL.append([user, next_arrival_time])
-    FEL.sort(key = byTime)
-    return FEL, user_list
+def simulation(route_df, L, M, C, l, lp, m):  
+  # Definición del estado inicial del sistema
+  FEL = initFEL(M)
+  arrivals = 0
 
-def leave(FEL, links, dfRutas, user, users, current_time):
-    links[dfRutas["RUTA"][user - users]] += 1 # Se libera el enlace
-    next_arrival_time = current_time + randExp(lambPrima) # Se asigna la siguiente llegada
-            
-    FEL.append([user - users, next_arrival_time])
-    FEL.sort(key = byTime)
-    return FEL, links
-# ------------------------------------------------
+  #users = np.full((M, 2),0)
+  L = 10
+  C = 54
+  links = np.full(L, C)
+  while (arrivals < 10**7):
+  
+    # el primer paso en cada iteración de la simulación es reordenar la FEL,
+    # posterior a la sobreesctritura de el primer elemento de la FEL luego de,
+    # ser procesado.
+    FEL = sorted(FEL, key=lambda item: item[2])
+
+    if (np.all(links[route_df["ROUTE"][FEL[0][0]]] > 0) and 
+       (FEL[0][1] == 0 or FEL[0][1] == -1)):
+      
+      # sobreesctritura del primer elemento de la FEL con el tiempo de servicio
+      # del usuario entrante.
+      FEL[0] = (FEL[0][0], 1, FEL[0][2] + randExp(m))
+      users[FEL[0][0], 1] += 1
+      links[route_df["ROUTE"][FEL[0][0]]] -= 1
+
+    elif (not np.all(links[route_df["ROUTE"][FEL[0][0]]] > 0) and
+         (FEL[0][1] == 0 or FEL[0][1] == -1)):
+      
+      # sobreesctritura del primer elemento de la FEL con el nuevo tiempo
+      # de llegada del usuario recién bloqueado.
+      FEL[0] = (FEL[0][0], -1, FEL[0][2] + randExp(l)) 
+      users[FEL[0][0], 0] += 1
+
+    elif (FEL[0][1] == 1):
+
+      # sobreesctritura del primer elemento de la FEL con el nuevo tiempo
+      # de llegada del usuario saliente.
+      FEL[0] = (FEL[0][0], 0, FEL[0][2] + randExp(lp))
+      links[route_df["ROUTE"][FEL[0][0]]] += 1
+
+    else:
+      raise ValueError('Se ha producido un error en el FEL: ',
+                       links[route_df["ROUTE"][FEL[0][0]]], FEL[0])
+
+  # salida del sistema
+  route_df["BLKING PROB PER USER"] = users[:,0] / users[:,1]
+  net_blking_prob = users[:,0].sum() / users[:,1].sum()
+
+  return route_df, net_blking_prob
+
 
 
