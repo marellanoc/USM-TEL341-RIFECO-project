@@ -12,7 +12,7 @@ import copy
 # i -> fuente
 # j -> destino
 
-def get_clockwise_routes(i, j, n):
+def get_clockwise_routes(i, j, n): 
     clockwise_routes_list = []
     k = i
     overclock = False
@@ -53,30 +53,22 @@ def get_counterclockwise_routes(i, j, n):
     return counterclockwise_routes_list
     
 
-def get_routes(n): # O(n^2)
+def get_routes(n): # O(n^2) C es el id_user y ese id esta asociado a las rutas definidas, lo que entregara sus rutas horarias y antihoraroias.
     routes = {}
     c = 0
     for i in range(n):
         for j in range(n):
             if (not i == j):
+                routes[c] = (i, j, [(get_clockwise_routes(i, j, n)), (get_counterclockwise_routes(i, j, n))]) #Tomar el origen, destino y regresar rutas horarias y antih de esos nodos.
                 c+=1
-                routes[c] = (i, j, [(get_clockwise_routes(i, j, n)), (get_counterclockwise_routes(i, j, n))])
-
                 
-    #print(c)
     return routes
 
-routes = get_routes(10)
-
-print(routes[14][2][0])
 
 L = 10
 C = 54
 links = np.full(L, C)
 
-print(links)
-
-#print(routes)
 
 #2consideraciones:
 #1)se tiene 3 cables, por lo que tendremos las mismas longuitudes de onda por enlace
@@ -100,8 +92,11 @@ links = []
 
 for link in range(10):
     links.append(tuple([copy.deepcopy(wire), copy.deepcopy(wire), copy.deepcopy(wire)]))
-
 print(links)
+#link[0]-> 1er enlace
+#link[0][0]->primer cable del primer enlace
+#link[0][0][1]->1era longitud de onda del primer cable del primer enlace 
+#link[0][0][1][1]->acceder al true
 
 wl = 18
 C = 54
@@ -201,7 +196,8 @@ def simulation(route_df, L, M, C, l, lp, m):
   C = 54
   links = np.full(L, C)
   while (arrivals < 10**7):
-  
+    eventoActual=FEL.pop(0) #eliminar el evento del FEL
+
     # el primer paso en cada iteración de la simulación es reordenar la FEL,
     # posterior a la sobreesctritura de el primer elemento de la FEL luego de,
     # ser procesado.
