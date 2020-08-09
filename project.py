@@ -1,7 +1,8 @@
+from statistics import stdev
 from random import random
+from copy import deepcopy
 import numpy as np
 import math as m
-import copy
 
 import topology as top
 
@@ -36,18 +37,17 @@ links = []
 
 for link in range(10):
     links.append(
-        list([copy.deepcopy(wire), copy.deepcopy(wire), copy.deepcopy(wire)]))
+        list([deepcopy(wire), deepcopy(wire), deepcopy(wire)]))
 
 links[0][0][0][1] = 0
 print(links[0][0][0][1])
-rutas_por_usuario = top.get_user_routes(5)
-print(rutas_por_usuario[0][2][1])
-successful, canal_elegido,suma, suma_total_enlace = top.get_load_balance(
-    rutas_por_usuario[0][2][1], links)
-print("Se pudo?:", successful)
-print("La suma total:", suma)
-print("El canal que tomo:", canal_elegido)
-print("La suma total de enlaces es:", top.sum_total_enlace)
+
+routes_per_user = top.get_user_routes(10)
+print(routes_per_user[0][2][1])
+
+
+
+
 
 # print(links)
 # link[0]-> 1er enlace/10
@@ -139,46 +139,56 @@ def initFEL(M):
 
     return FEL
 
+def simulator(M, routes_per_user, links, m, l, lp):
+  B = 0
+  data = []
+  # Inicialización de la FEL
+  FEL = []
+  for j in range(M): # valores iniciales del FEL
+    FEL.append(tuple((j, ON, -1, randExp(l))))
+  
+  for arrivals in range(10**6):
+    # Se ordena la FEL para conocer el evento próximo
+    FEL = sorted(FEL, key=lambda item: item[3])
+    
+    # Se obtienen los datos del evento actual
+    user_id, event, channel, current_time = FEL[0][0], FEL[0][1], FEL[0][2], FEL[0][3]
+    # Se agrega un nuevo elemento a la FEL con el tiempo de llegada para el
+    # mismo usuario.
 
-def simulation(route_df, L, M, C, l, lp, m):
-    # Definición del estado inicial del sistema
-    FEL = initFEL(M)
-    arrivals = 0
+    if event == ON:    
+        is_successful_clock, chosen_channel_clock, sum_clock, total_network_sums = top.get_load_balance(
+            routes_per_user[user_id][2][0], links)
 
-    #users = np.full((M, 2),0)
-    L = 10
-    C = 54
-    links = np.full(L, C)
-    while (arrivals < 10**7):
-        # el primer paso en cada iteración de la simulación es reordenar la FEL,
-        # posterior a la sobreesctritura de el primer elemento de la FEL luego de,
-        # ser procesado.
-        FEL = sorted(FEL, key=lambda item: item[2])
+        is_successful_counterclock, chosen_channel_counterclock, sum_counterclock, total_network_sums = top.get_load_balance(
+            routes_per_user[user_id][2][1], links)
 
-        if (np.all(links[route_df["ROUTE"][FEL[0][0]]] > 0) and
-                (FEL[0][1] == 0 or FEL[0][1] == -1)):
+        if (is_successful_clock and is_successful_counterclock):
+            if (sum_clock >= sum_counterclock):
+                change_preferred_route(routes_per_user[user_id][2][0], links, chosen_channel_clock, event)
+                FEL[0] = (user_id, OFF, chosen_channel_clock, current_time + randExp(m))
+            else:
+                change_preferred_route(routes_per_user[user_id][2][1], links, chosen_channel_counterclock, event)
+                FEL[0] = (user_id, OFF, chosen_channel_counterclock, current_time + randExp(m))
+        
+        else if (is_successful_clock and not is_successful_counterclock):
+            change_preferred_route(routes_per_user[user_id][2][0], links, chosen_channel_clock, event)
+            FEL[0] = (user_id, OFF, chosen_channel_clock, current_time + randExp(m))
 
-            # sobreesctritura del primer elemento de la FEL con el tiempo de servicio
-            # del usuario entrante.
-            FEL[0] = (FEL[0][0], 1, FEL[0][2] + randExp(m))
-            links[route_df["ROUTE"][FEL[0][0]]] -= 1
-
-        elif (not np.all(links[route_df["ROUTE"][FEL[0][0]]] > 0) and
-              (FEL[0][1] == 0 or FEL[0][1] == -1)):
-
-            # sobreesctritura del primer elemento de la FEL con el nuevo tiempo
-            # de llegada del usuario recién bloqueado.
-            FEL[0] = (FEL[0][0], -1, FEL[0][2] + randExp(l))
-
-        elif (FEL[0][1] == 1):
-
-            # sobreesctritura del primer elemento de la FEL con el nuevo tiempo
-            # de llegada del usuario saliente.
-            FEL[0] = (FEL[0][0], 0, FEL[0][2] + randExp(lp))
-            links[route_df["ROUTE"][FEL[0][0]]] += 1
+        else if (not is_successful_clock and is_successful_counterclock):
+            change_preferred_route(routes_per_user[user_id][2][1], links, chosen_channel_counterclock, event)
+            FEL[0] = (user_id, OFF, chosen_channel_counterclock, current_time + randExp(m))
 
         else:
-            raise ValueError('Se ha producido un error en el FEL: ',
-                             links[route_df["ROUTE"][FEL[0][0]]], FEL[0])
+            FEL[0] = (user_id, ON, -1, current_time + randExp(l))
+            B += 1
 
-    return route_df
+    else if event == OFF:
+        FEL[0] = (user_id, ON, -1, current_time + randExp(lp))
+
+    if arrivals/100 == 0:
+        data.append(((B / arrivals), stdev(total_network_sums)))
+    
+    return data
+
+

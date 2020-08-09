@@ -5,8 +5,6 @@
 # i -> fuente
 # j -> destino
 
-sum_total_enlace = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
-
 def first_choose_channel(links, first_route, blocked_channels):
     chosen_channel = -1
     for wire in range(3):       # 3 cables
@@ -20,14 +18,13 @@ def first_choose_channel(links, first_route, blocked_channels):
     return chosen_channel
 
 
-def sum_total_lamb(route, links):
-    global sum_total_enlace
+def sum_total_lamb(route, links, sum_total_enlace): 
     sum_link = 0
     for wire in range(3):
         for channel in range(18):
             sum_link += links[route][wire][channel][1]
     sum_total_enlace[route] = sum_link
-    return sum_link
+    return sum_link, sum_total_enlace
 
 
 def is_wire_available(links, route, chosen_channel):
@@ -39,6 +36,7 @@ def is_wire_available(links, route, chosen_channel):
 
 
 def get_load_balance(routes, links):  # recibe la ruta de horaria o antihoraria y links
+    sum_total_enlace = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     print("Rutas:", routes)
     chosen_channel = 0
     first_step = True
@@ -59,7 +57,7 @@ def get_load_balance(routes, links):  # recibe la ruta de horaria o antihoraria 
             print("First en if:", first_route)
             chosen_channel = first_choose_channel(
                 links, first_route, blocked_channels)
-            sum_iter = sum_total_lamb(first_route, links)
+            sum_iter, sum_total_enlace = sum_total_lamb(first_route, links, sum_total_enlace)
             # Para debugear despues
             print('chosen_channel: ', chosen_channel)
         else:
@@ -68,7 +66,8 @@ def get_load_balance(routes, links):  # recibe la ruta de horaria o antihoraria 
             print("ruta", route)
             # elegir los siguientes
             if (is_wire_available(links, route, chosen_channel)):
-                sum_iter += sum_total_lamb(route, links)
+                _sum_iter, sum_total_enlace = sum_total_lamb(route, links, sum_total_enlace)
+                sum_iter += _sum_iter
                 print("sum_iter:", sum_iter)
                 successful = True
             else:
@@ -124,15 +123,27 @@ def get_counterclockwise_routes(i, j, n):
 
 
 # O(n^2) n es la cantidad de usuarios y se crearan todas las rutas de n*(n-1)
-def get_user_routes(n):
+def get_user_routes(M):
     routes = {}
-    c = 0
-    for i in range(n):
-        for j in range(n):
+    user_id = 0
+    for i in range(M):
+        for j in range(M):
             if (not i == j):
                 # Tomar el origen, destino y regresar rutas horarias y antih de esos nodos.
-                routes[c] = (i, j, [(get_clockwise_routes(i, j, n)),
+                routes[user_id] = (i, j, [(get_clockwise_routes(i, j, n)),
                                     (get_counterclockwise_routes(i, j, n))])
-                c += 1
+                user_id += 1
 
     return routes
+
+def change_preferred_route(route, links, chosen_channel, event):
+    if event == 0:
+        new_event = 1
+    else 
+        new_event = 0
+
+    for link in route:
+        for wire in range(3):
+            if links[link][wire][chosen_channel][1] == event:
+                links[link][wire][chosen_channel][1] = new_event
+                break
