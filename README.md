@@ -59,4 +59,42 @@ Una de las herramientas necesarias y de la cual no se ha recibido información p
 
 
 
+2consideraciones:
+1)se tiene 3 cables, por lo que tendremos las mismas longuitudes de onda por enlace
+en caso de no encontrar la longuitud de onda en un cable, pregunto en los otros hasta que lo encuentre.
+
+2) Tener que verificar ambas rutas (con sus respectivos long.onda) y
+luego si ambas son permitidas:
+verificar cual esta mas cargadas y elegir esa.
+en caso contrario, si solo 1 esta disponible, se manda por esa sin importar la carga
+en caso de tener cargas iguales, se prefiere siempre horario.
+
+----------------------------------------------------------------------------------------------
+      VARIABLES A CONSIDERAR PARA DETERMINAR EL BALANCE DE CARGAR:
+----------------------------------------------------------------------------------------------
+1. Disponibilidad de la comunicación de origen a destino
+2. Congestión individual de cada enlace
+3. Ocupar primero un cable hasta llenarlo (por cada cnaal), antes de pasar al siguiente,
+   con el objetivo de no agotar las longitudes de onda repetidas cuando hay otras disponibles
+4. Se considerara las longuitudes de ondas ocupadas para verificar cual esta mas cargada (se contara por los 3 cables.)
+5. No se tomara en cuanta como usada la longitud de onda que el usuario encontro para comunicarse al momento de contar las longitudes usadas.
+----------------------------------------------------------------------------------------------
+
+1)1---2---3 si
+2)1---9---8---7---6---5---4---3 si
+mas cargado?? el 1
+por lo tanto me voy por el 2.
+
+
+--------------------------------------------------------------------------
+      PSEUDOCODIGO
+--------------------------------------------------------------------------
+1. Usuario quiere transmitir -> ¿pregunta que longitud de onda?
+2. se añade a la fel :v
+3. pregunta el mejor camino
+  3.1
+4. llega al destino y deja de transmitir e.e
+--------------------------------------------------------------------------
+
+
 
